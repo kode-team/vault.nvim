@@ -3,6 +3,19 @@ local path = require("plenary.path")
 
 local M = {}
 
+math.randomseed(os.time())
+
+local charset = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ1234567890"
+
+function string.random(length)
+  local idx = math.random(1, #charset)
+  if length > 0 then
+    return string.random(length - 1) .. charset:sub(idx, idx)
+  else
+    return ""
+  end
+end
+
 local default_conf = {
   encrypted_file_path = "~/.local/share/vault.json.enc",
   key_path = "~/.local/share/vault.key",
@@ -16,7 +29,7 @@ M.generate_key = function(key_path)
   end
 
   local file = io.open(p:expand(), "w")
-  local generated_key = "random_string"
+  local generated_key = string.random(64)
   file:write(generated_key)
   file:close()
 end
