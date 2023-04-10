@@ -20,6 +20,7 @@ local default_conf = {
   encrypted_file_path = "~/.local/share/vault.json.enc",
   key_path = "~/.local/share/vault.key",
   cipher_algorithm = "aes-128-cbc",
+  content = nil,
 }
 
 M.generate_key = function(key_path)
@@ -39,7 +40,7 @@ M.generate_encrypted_file = function(opts)
   local k = path:new(opts.key_path)
   local algorithm = opts.cipher_algorithm
 
-  local default_json = vim.fn.json_encode({
+  local default_json = vim.fn.json_encode(opts.content or {
     env = {
       FOO = "BAR"
     }
@@ -64,6 +65,7 @@ M.setup = function(opts)
   local encrypted_file_path = opts.encrypted_file_path or default_conf.encrypted_file_path
   local key_path = opts.key_path or default_conf.key_path
   local cipher_algorithm = opts.cipher_algorithm or default_conf.cipher_algorithm
+  local content = opts.content or default_conf.content
 
   local k = path:new(key_path)
   if not k:exists() then
@@ -76,6 +78,7 @@ M.setup = function(opts)
       cipher_algorithm = cipher_algorithm,
       key_path = key_path,
       encrypted_file_path = encrypted_file_path,
+      content = content,
     })
   end
 end
