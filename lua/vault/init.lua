@@ -1,6 +1,8 @@
 local cipher = require("openssl").cipher
 local path = require("plenary.path")
 
+local autocmds = require('vault.autocmds')
+
 local M = {}
 
 math.randomseed(os.time())
@@ -85,6 +87,9 @@ M.setup = function(opts)
   vim.g.nvim_vault_cipher_algorithm = cipher_algorithm
   vim.g.nvim_vault_key_path = key_path
   vim.g.nvim_encrypted_vault_path = encrypted_file_path
+
+  autocmds.setup()
+
 end
 
 M.find_buffer_by_name = function(name)
@@ -114,7 +119,7 @@ M.open_vault = function()
 
   local buf = nil
   local bufnr = 0
-  local target_buf_name = "__VAULT__"
+  local target_buf_name = "vault://__VAULT__"
   local target_buffer = M.find_buffer_by_name(target_buf_name)
   if target_buffer ~= -1 then
     buf = target_buffer
@@ -132,9 +137,33 @@ M.open_vault = function()
   bufnr = vim.api.nvim_get_current_buf()
 
   vim.api.nvim_buf_set_name(bufnr, target_buf_name)
-  vim.api.nvim_buf_set_option(bufnr, "filetype", "jsonvault")
+  vim.api.nvim_buf_set_option(bufnr, "buftype", "")
 
-  vim.api.nvim_buf_set_lines(bufnr, 0, 0, "true", { content })
+  local lines = {}
+  for line in content:gmatch("([^\n]*)\n?") do
+    lines[#lines + 1] = line
+  end
+
+  vim.api.nvim_buf_set_lines(bufnr, 0, 0, "true", lines)
+end
+
+M.save_buffer = function()
+  local lines = vim.api.nvim_buf_get_lines(0, 0, vim.api.nvim_buf_line_count(0), false)
+  local content = table.concat(lines, "\n")
+
+  local cipher_algorithm = vim.g.nvim_vault_cipher_algorithm
+  local key_path = vim.g.nvim_vault_key_path
+  local encrypted_file_path = vim.g.nvim_encrypted_vault_path
+
+  local key_file = io.open(path:new(key_path):expand(), "r")
+  local key = key_file:read()
+  key_file:close()
+
+  local encrypted_content = cipher.encrypt(cipher_algorithm, content, key)
+
+  local encrypted_file = io.open(path:new(encrypted_file_path):expand(), "w")
+  encrypted_file:write(encrypted_content)
+  encrypted_file:close()
 end
 
 return M
