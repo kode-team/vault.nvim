@@ -63,6 +63,32 @@ M.generate_encrypted_file = function(opts)
   file:close()
 end
 
+local setenv_from_vault = function()
+  local cipher_algorithm = vim.g.nvim_vault_cipher_algorithm
+  local key_path = vim.g.nvim_vault_key_path
+  local encrypted_file_path = vim.g.nvim_encrypted_vault_path
+
+  local key_file = io.open(path:new(key_path):expand(), "r")
+  local key = key_file:read()
+  key_file:close()
+
+  local encrypted_file = io.open(path:new(encrypted_file_path):expand(), "r")
+  local encrypted_content = encrypted_file:read()
+  encrypted_file:close()
+
+
+  local result = cipher.decrypt(cipher_algorithm, encrypted_content, key)
+  local json = vim.fn.json_decode(result)
+
+  if json["env"] ~= nil then
+    local env = json.env
+
+    for k, v in pairs(env) do
+      vim.env[k] = v
+    end
+  end
+end
+
 M.setup = function(opts)
   local encrypted_file_path = opts.encrypted_file_path or default_conf.encrypted_file_path
   local key_path = opts.key_path or default_conf.key_path
@@ -90,6 +116,7 @@ M.setup = function(opts)
 
   autocmds.setup()
 
+  setenv_from_vault()
 end
 
 M.find_buffer_by_name = function(name)
@@ -149,7 +176,7 @@ end
 
 M.save_buffer = function()
   local lines = vim.api.nvim_buf_get_lines(0, 0, vim.api.nvim_buf_line_count(0), false)
-  local content = table.concat(lines, "\n")
+  local line = lines[1]
 
   local cipher_algorithm = vim.g.nvim_vault_cipher_algorithm
   local key_path = vim.g.nvim_vault_key_path
@@ -159,7 +186,7 @@ M.save_buffer = function()
   local key = key_file:read()
   key_file:close()
 
-  local encrypted_content = cipher.encrypt(cipher_algorithm, content, key)
+  local encrypted_content = cipher.encrypt(cipher_algorithm, line, key)
 
   local encrypted_file = io.open(path:new(encrypted_file_path):expand(), "w")
   encrypted_file:write(encrypted_content)
