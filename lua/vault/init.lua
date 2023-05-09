@@ -18,9 +18,11 @@ function string.random(length)
   end
 end
 
+local home_path = os.getenv("HOME")
+
 local default_conf = {
-  encrypted_file_path = "~/.local/share/vault.json.enc",
-  key_path = "~/.local/share/vault.key",
+  encrypted_file_path = home_path .. "/.local/share/vault.json.enc",
+  key_path = home_path .. "/.local/share/vault.key",
   cipher_algorithm = "aes-128-cbc",
   content = nil,
 }
@@ -75,7 +77,6 @@ local setenv_from_vault = function()
   local encrypted_file = io.open(path:new(encrypted_file_path):expand(), "r")
   local encrypted_content = encrypted_file:read()
   encrypted_file:close()
-
 
   local result = cipher.decrypt(cipher_algorithm, encrypted_content, key)
   local json = vim.fn.json_decode(result)
